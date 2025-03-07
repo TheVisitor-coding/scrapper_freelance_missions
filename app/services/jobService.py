@@ -4,10 +4,11 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from datetime import datetime
 
 jobs_cache = []
 
-def scrape_job():
+async def start_scrape():
     global jobs_cache
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
@@ -20,39 +21,53 @@ def scrape_job():
     driver = webdriver.Chrome(service=service, options=options)
     
     try:
-        url = 'https://www.free-work.com/fr/tech-it/jobs'
-        driver.get(url)
-
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//*[@id='content']/div[1]/div[1]/div/div/div/div/div[1]/strong"))
-        )
-
-        missions = driver.find_elements(By.XPATH, '//*[@id="content"]/div[1]/div[2]/div/div/div[1]/div/div[1]/following-sibling::div')
-
-        data = []
-        for mission in missions[:-1]:
-            try: 
-                title = mission.find_element(By.CSS_SELECTOR, "h2 a").text.strip()
-                company = mission.find_element(By.CSS_SELECTOR, "div.font-bold").text.strip()
-                date_publish = mission.find_element(By.CSS_SELECTOR, "time").text.strip()
-                type = mission.find_element(By.CSS_SELECTOR, "span div.truncate").text.strip()
-           
-                data.append({
-                    'type': type,
-                    'job': title,
-                    'client': company,
-                    'date': date_publish,
-                })
-                
-            except Exception as e:
-                print('Error :', e)
-                continue
-            
+        counter = 1
+        data = []   
+        isNotToday = False
+        
+        while not isNotToday:
+            url = f'https://www.free-work.com/fr/tech-it/jobs?page={counter}'
+            driver.get(url)
+            isNotToday = scrape_jobs(driver, data) 
+            counter += 1
+             
         jobs_cache = data
     except Exception as e:
         print('Error :', e)
 
     finally:
+        print('Finished scraping')
         driver.quit()
 
     return jobs_cache
+
+def scrape_jobs(driver, data: list) -> bool:
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.XPATH, "//*[@id='content']/div[1]/div[1]/div/div/div/div/div[1]/strong"))
+    )
+
+    missions = driver.find_elements(By.XPATH, '//*[@id="content"]/div[1]/div[2]/div/div/div[1]/div/div[1]/following-sibling::div')
+
+    for mission in missions[:-1]:
+        try: 
+            date_publish = mission.find_element(By.CSS_SELECTOR, "time").text.strip()
+            
+            if date_publish != datetime.today().strftime('%d/%m/%Y'):
+                return True
+            
+            title = mission.find_element(By.CSS_SELECTOR, "h2 a").text.strip()
+            company = mission.find_element(By.CSS_SELECTOR, "div.font-bold").text.strip()
+            type = mission.find_element(By.CSS_SELECTOR, "span div.truncate").text.strip()
+        
+            data.append({
+                'type': type,
+                'job': title,
+                'client': company,
+                'date': date_publish,
+            })
+            
+        except Exception as e:
+            print('Error :', e)
+            continue
+        
+    return False
