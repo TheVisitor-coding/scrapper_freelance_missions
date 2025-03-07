@@ -4,19 +4,21 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import time
 
-options = webdriver.ChromeOptions()
-options.add_argument("--headless")
-options.add_argument("--no-sandbox")
-options.add_argument('--ignore-certificate-errors')
-options.add_argument('--ignore-ssl-errors')
-options.add_argument("--disable-dev-shm-usage")
-
-service = Service(ChromeDriverManager().install())
-driver = webdriver.Chrome(service=service, options=options)
+jobs_cache = []
 
 def scrape_job():
+    global jobs_cache
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument('--ignore-certificate-errors')
+    options.add_argument('--ignore-ssl-errors')
+    options.add_argument("--disable-dev-shm-usage")
+
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
+    
     try:
         url = 'https://www.free-work.com/fr/tech-it/jobs'
         driver.get(url)
@@ -25,8 +27,6 @@ def scrape_job():
             EC.presence_of_element_located((By.XPATH, "//*[@id='content']/div[1]/div[1]/div/div/div/div/div[1]/strong"))
         )
 
-
-        time.sleep(5)
         missions = driver.find_elements(By.XPATH, '//*[@id="content"]/div[1]/div[2]/div/div/div[1]/div/div[1]/following-sibling::div')
 
         data = []
@@ -36,20 +36,23 @@ def scrape_job():
                 company = mission.find_element(By.CSS_SELECTOR, "div.font-bold").text.strip()
                 date_publish = mission.find_element(By.CSS_SELECTOR, "time").text.strip()
                 type = mission.find_element(By.CSS_SELECTOR, "span div.truncate").text.strip()
+           
+                data.append({
+                    'type': type,
+                    'job': title,
+                    'client': company,
+                    'date': date_publish,
+                })
+                
             except Exception as e:
                 print('Error :', e)
                 continue
             
-            data.append({
-                'type': type,
-                'job': title,
-                'client': company,
-                'date': date_publish,
-            })
-            
-        driver.quit()
+        jobs_cache = data
     except Exception as e:
         print('Error :', e)
 
     finally:
         driver.quit()
+
+    return jobs_cache
