@@ -6,6 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
 
+myFilters = ['react', 'javascript', 'nodejs', 'docker', 'strapi', 'automatisation', 'python', 'next.js']
 jobs_cache = []
 
 async def start_scrape():
@@ -51,19 +52,29 @@ def scrape_jobs(driver, data: list) -> bool:
     for mission in missions[:-1]:
         try: 
             date_publish = mission.find_element(By.CSS_SELECTOR, "time").text.strip()
-            
             if date_publish != datetime.today().strftime('%d/%m/%Y'):
                 return True
             
             title = mission.find_element(By.CSS_SELECTOR, "h2 a").text.strip()
             company = mission.find_element(By.CSS_SELECTOR, "div.font-bold").text.strip()
             type = mission.find_element(By.CSS_SELECTOR, "span div.truncate").text.strip()
+            languages = mission.find_elements(By.CSS_SELECTOR, ".tag.bg-brand-75 div.truncate")
+
+            isFound = False
+            for language in languages:
+                if language.text.strip().lower() in myFilters:
+                    isFound = True
+                    break
+                
+            if type != 'Freelance' or not isFound:
+                continue
         
             data.append({
                 'type': type,
                 'job': title,
                 'client': company,
                 'date': date_publish,
+                'languages': [language.text.strip() for language in languages[:3]]
             })
             
         except Exception as e:
