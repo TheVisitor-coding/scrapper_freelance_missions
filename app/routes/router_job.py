@@ -7,7 +7,7 @@ scraper = jobService.JobScraper()
 
 @router.get('/jobs', tags=['jobs'])
 def get_jobs():
-    return { 'jobs': scraper.jobs_cache}
+    return { 'jobs': scraper.get_jobs_from_cache()}
 
 @router.post('/jobs/update', tags=['jobs'])
 def scrape_jobs(background_tasks: BackgroundTasks):
