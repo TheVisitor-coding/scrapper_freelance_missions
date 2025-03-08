@@ -34,6 +34,7 @@ class JobScraper:
                 counter += 1
 
             self.store_jobs_in_cache(data)
+            print(f"{len(data)} jobs scrapés et stockés en cache.")
             
         except Exception as e:
             print('Error:', e)
@@ -53,10 +54,13 @@ class JobScraper:
 
             for mission in missions[:-1]:
                 job = self._extract_job_data(mission)
-                if job:
+               
+                if job is False:
+                    return True
+                
+                if job is not None:
+                    print('Found Job :', job)
                     data.append(job)
-
-            return any(job['date'] != datetime.today().strftime('%d/%m/%Y') for job in data)
 
         except Exception as e:
             print('Scraping error:', e)
@@ -65,6 +69,9 @@ class JobScraper:
     def _extract_job_data(self, mission) -> dict:
         try:
             date_publish = mission.find_element(By.CSS_SELECTOR, "time").text.strip()
+            if date_publish != datetime.today().strftime('%d/%m/%Y'):
+                return False
+            
             title = mission.find_element(By.CSS_SELECTOR, "h2 a").text.strip()
             company = mission.find_element(By.CSS_SELECTOR, "div.font-bold").text.strip()
             type = mission.find_element(By.CSS_SELECTOR, "span div.truncate").text.strip()
