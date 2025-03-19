@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: docker.io/postgres:13.20@sha256:a4c9ad5add8a2e4c86e123bfdaf940d120c0541b782f317ab4e630ab3d391650
+    container_name: postgres_scraper
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: scraper_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - scraper_network
+
+  redis:
+    image: docker.io/redis:7.2@sha256:fc485c15a15be0096fd6cecfafe2a9a70e6300f0db14cad08fa315a8d00cdb02
+    container_name: redis_scraper
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - scraper_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  scraper_network:
+    driver: bridge
